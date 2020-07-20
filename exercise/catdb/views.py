@@ -2,9 +2,19 @@ from django.shortcuts import render
 from rest_framework import generics
 from catdb.models import Home, Human, Cat, Breed
 from catdb.serializers import HomeSerializer, HumanSerializer, CatSerializer, BreedSerializer
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
 # Create your views here.
 
-
+@api_view(['GET'])
+def api_root(request, format=None):
+    return Response({
+        'home': reverse('home-list', request=request, format=format),
+        'human': reverse('human-list', request=request, format=format),
+        'cat':reverse('cat-list', request=request, format=format),
+        'breed': reverse('breed-list', request=request, format=format),
+    })
 
 class HomeList(generics.ListCreateAPIView):
     queryset = Home.objects.all()
