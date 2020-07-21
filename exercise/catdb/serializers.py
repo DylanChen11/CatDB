@@ -15,9 +15,10 @@ class HumanSerializer(serializers.HyperlinkedModelSerializer):
         fields=['id', 'name', 'gender', 'dob', 'description', 'home', 'cats']
 
 class CatSerializer(serializers.HyperlinkedModelSerializer):
+    home=serializers.CharField(source='owner.home.name')
     class Meta:
         model=Cat
-        fields=['id', 'name', 'gender', 'dob', 'description', 'breed', 'owner']
+        fields=['id', 'name', 'gender', 'dob', 'description', 'breed', 'owner', 'home']
 
 class BreedSerializer(serializers.HyperlinkedModelSerializer):
     cats=serializers.HyperlinkedRelatedField(many=True, view_name='cat-detail', read_only=True)
