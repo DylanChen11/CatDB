@@ -101,6 +101,10 @@ class HomeViewSetTestCase(APITestCase):
         # check if number of houses is the same
         self.assertEqual(total_houses_after_delete, total_houses)
 
+    def test_home_not_found(self):
+        response = self.client.get(reverse("home-detail", kwargs={"pk": 999}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 
 class BreedViewSetTestCase(APITestCase):
 
@@ -191,6 +195,10 @@ class BreedViewSetTestCase(APITestCase):
             self.client.get(reverse("breed-list")).data)
         # check if number of breeds is the same
         self.assertEqual(total_breeds_after_delete, total_breeds)
+
+    def test_breed_not_found(self):
+        response = self.client.get(reverse("breed-detail", kwargs={"pk": 999}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class HumanViewSetTestCase(APITestCase):
@@ -286,3 +294,114 @@ class HumanViewSetTestCase(APITestCase):
             self.client.get(reverse("human-list")).data)
         # check if number of humans is the same
         self.assertEqual(total_humans_after_delete, total_humans)
+
+    def test_human_not_found(self):
+        response = self.client.get(reverse("human-detail", kwargs={"pk": 999}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class CatViewSetTestCase(APITestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="test1", password="12345678")
+        self.token = Token.objects.create(user=self.user)
+        Home.objects.create(name="first house",
+                            address="testaddr", Type="landed")
+        Home.objects.create(name="second house",
+                            address="testaddr2", Type="condo")
+        Human.objects.create(name="dylan", gender="M", dob="1998-01-12",
+                             description="dog lover", home=Home.objects.get(pk=1))
+        Human.objects.create(name="thereisa", gender="F", dob="1948-07-16",
+                             description="dylan's grandma", home=Home.objects.get(pk=2))
+        Breed.objects.create(
+            name="Munchkin", origin="Mutation", description="Dwarf")
+        Breed.objects.create(name="Bengal", origin="Hybrid of the Abyssinian and Egyptian Mau x leopard cat",
+                             description="Spotted, marbled, or rosetted")
+        Cat.objects.create(name="bobby", gender="M", dob="2014-02-20", description="brown cat",
+                           breed=Breed.objects.get(pk=1), owner=Human.objects.get(pk=1))
+        Cat.objects.create(name="tom", gender="M", dob="2016-07-16", description="grey cat",
+                           breed=Breed.objects.get(pk=2), owner=Human.objects.get(pk=2))
+
+    # GET
+
+    def test_cat_list_retrieve(self):
+        response = self.client.get(reverse("cat-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    # GET
+    def test_cat_detail_retrieve(self):
+        response = self.client.get(reverse("cat-detail", kwargs={"pk": 1}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["name"], "bobby")
+
+    # PUT
+    def test_cat_detail_update_authenticated(self):
+        # change name of cat
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        response = client.put(
+            reverse("cat-detail", kwargs={"pk": 1}), {"name": "shiro", "gender": "F", "dob": "1999-08-16", "description": "white cat", "breed": "http://localhost:8000/breeds/1/", "owner": "http://localhost:8000/humans/1/"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # check if changes were made
+        response = client.get(reverse("cat-detail", kwargs={"pk": 1}))
+        self.assertEqual(response.data["name"], "shiro")
+
+    def test_cat_detail_update_unauthenticated(self):
+        client = APIClient()
+        # change name of cat
+        response = client.put(
+            reverse("cat-detail", kwargs={"pk": 1}), {"name": "hacked"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # POST
+
+    def test_cat_detail_add_authenticated(self):
+        # change name of cat
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        response = client.post(reverse(
+            "cat-list"), {"name": "kuro", "gender": "M", "dob": "2000-01-18", "description": "black cat", "breed": "http://localhost:8000/breeds/1/", "owner": "http://localhost:8000/humans/2/"})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # check if changes were made
+        total_cats = len(self.client.get(reverse("cat-list")).data)
+        response = client.get(
+            reverse("cat-detail", kwargs={"pk": total_cats}))
+        self.assertEqual(response.data["name"], "kuro")
+
+    def test_cat_detail_add_unauthenticated(self):
+        client = APIClient()
+        # change name of cat
+        response = client.post(reverse(
+            "cat-list"), {"name": "hacked", "gender": "M", "dob": "2000-01-18", "description": "hacked cat", "breed": "http://localhost:8000/breeds/1/", "owner": "http://localhost:8000/humans/2/"})
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # DELETE
+    def test_cat_detail_delete_authenticated(self):
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        # check no of houses atm
+        total_cats = len(self.client.get(reverse("cat-list")).data)
+        response = client.delete(
+            reverse("cat-detail", kwargs={"pk": total_cats}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        total_cats_after_delete = len(
+            self.client.get(reverse("cat-list")).data)
+        # check if number of cat reduced
+        self.assertEqual(total_cats_after_delete, total_cats-1)
+
+    def test_cat_detail_delete_unauthenticated(self):
+        client = APIClient()
+        # check no of cat atm
+        total_cats = len(self.client.get(reverse("cat-list")).data)
+        response = client.delete(
+            reverse("cat-detail", kwargs={"pk": total_cats}))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        total_cats_after_delete = len(
+            self.client.get(reverse("cat-list")).data)
+        # check if number of cats is the same
+        self.assertEqual(total_cats_after_delete, total_cats)
+
+    def test_cat_not_found(self):
+        response = self.client.get(reverse("cat-detail", kwargs={"pk": 999}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
