@@ -6,8 +6,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APIRequestFactory, APITestCase, APIClient
 
 from .models import Breed, Cat, Home, Human
-from .serializers import (BreedSerializer, CatSerializer, HomeSerializer,
-                          HumanSerializer)
+
 
 # Create your tests here.
 
@@ -27,16 +26,16 @@ class HomeViewSetTestCase(APITestCase):
     def test_home_list_retrieve(self):
         response = self.client.get(reverse("home-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(self.client.get(reverse("home-list")).data), 2)
-        self.assertEqual(self.client.get(reverse("home-list")).data[0]["name"], "first house")
-        self.assertEqual(self.client.get(reverse("home-list")).data[0]["address"], "testaddr")
-        self.assertEqual(self.client.get(reverse("home-list")).data[0]["Type"], "landed")
-        self.assertEqual(self.client.get(reverse("home-list")).data[1]["name"], "second house")
-        self.assertEqual(self.client.get(reverse("home-list")).data[1]["address"], "testaddr2")
-        self.assertEqual(self.client.get(reverse("home-list")).data[1]["Type"], "condo")
-
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["name"], "first house")
+        self.assertEqual(response.data[0]["address"], "testaddr")
+        self.assertEqual(response.data[0]["Type"], "landed")
+        self.assertEqual(response.data[1]["name"], "second house")
+        self.assertEqual(response.data[1]["address"], "testaddr2")
+        self.assertEqual(response.data[1]["Type"], "condo")
 
     # GET
+
     def test_home_detail_retrieve(self):
         response = self.client.get(reverse("home-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -48,9 +47,10 @@ class HomeViewSetTestCase(APITestCase):
     def test_home_detail_update_authenticated(self):
         # change name of house
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "second house"}
+        token = "Token "+str(self.token)
         response = client.put(
-            reverse("home-detail", kwargs={"pk": 1}), {"name": "second house"})
+            reverse("home-detail", kwargs={"pk": 1}), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # check if changes were made
         response = client.get(reverse("home-detail", kwargs={"pk": 1}))
@@ -68,9 +68,11 @@ class HomeViewSetTestCase(APITestCase):
     def test_home_detail_add_authenticated(self):
         # change name of house
         client = APIClient()
-        client.force_authenticate(user=self.user)
-        response = client.post(reverse(
-            "home-list"), {"name": "third house", "address": "testaddr3", "Type": "condo"})
+        req_data = {"name": "third house",
+                    "address": "testaddr3", "Type": "condo"}
+        token = "Token "+str(self.token)
+        response = client.post(reverse("home-list"),
+                               req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # check if changes were made
         total_houses = len(self.client.get(reverse("home-list")).data)
@@ -80,22 +82,23 @@ class HomeViewSetTestCase(APITestCase):
         self.assertEqual(response.data["address"], "testaddr3")
         self.assertEqual(response.data["Type"], "condo")
 
-
     def test_home_detail_add_unauthenticated(self):
         client = APIClient()
+        req_data = {"name": "hacked house",
+                    "address": "fake addr", "Type": "condo"}
         # change name of house
         response = client.post(reverse(
-            "home-list"), {"name": "hacked house", "address": "fake addr", "Type": "condo"})
+            "home-list"), req_data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     # DELETE
     def test_home_detail_delete_authenticated(self):
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        token = "Token "+str(self.token)
         # check no of houses atm
         total_houses = len(self.client.get(reverse("home-list")).data)
         response = client.delete(
-            reverse("home-detail", kwargs={"pk": total_houses}))
+            reverse("home-detail", kwargs={"pk": total_houses}), HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         total_houses_after_delete = len(
             self.client.get(reverse("home-list")).data)
@@ -135,16 +138,18 @@ class BreedViewSetTestCase(APITestCase):
     def test_breed_list_retrieve(self):
         response = self.client.get(reverse("breed-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(self.client.get(reverse("breed-list")).data), 2)
-        self.assertEqual(self.client.get(reverse("breed-list")).data[0]["name"], "Munchkin")
-        self.assertEqual(self.client.get(reverse("breed-list")).data[0]["origin"], "Mutation")
-        self.assertEqual(self.client.get(reverse("breed-list")).data[0]["description"], "Dwarf")
-        self.assertEqual(self.client.get(reverse("breed-list")).data[1]["name"], "Bengal")
-        self.assertEqual(self.client.get(reverse("breed-list")).data[1]["origin"], "Hybrid of the Abyssinian and Egyptian Mau x leopard cat")
-        self.assertEqual(self.client.get(reverse("breed-list")).data[1]["description"], "Spotted, marbled, or rosetted")
-
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["name"], "Munchkin")
+        self.assertEqual(response.data[0]["origin"], "Mutation")
+        self.assertEqual(response.data[0]["description"], "Dwarf")
+        self.assertEqual(response.data[1]["name"], "Bengal")
+        self.assertEqual(
+            response.data[1]["origin"], "Hybrid of the Abyssinian and Egyptian Mau x leopard cat")
+        self.assertEqual(
+            response.data[1]["description"], "Spotted, marbled, or rosetted")
 
     # GET
+
     def test_breed_detail_retrieve(self):
         response = self.client.get(reverse("breed-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -156,9 +161,10 @@ class BreedViewSetTestCase(APITestCase):
     def test_breed_detail_update_authenticated(self):
         # change name of breed
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "Abyssinian"}
+        token = "Token "+str(self.token)
         response = client.put(
-            reverse("breed-detail", kwargs={"pk": 1}), {"name": "Abyssinian"})
+            reverse("breed-detail", kwargs={"pk": 1}), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # check if changes were made
         response = client.get(reverse("breed-detail", kwargs={"pk": 1}))
@@ -176,9 +182,11 @@ class BreedViewSetTestCase(APITestCase):
     def test_breed_detail_add_authenticated(self):
         # change name of breed
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "another breed",
+                    "origin": "another origin", "description": "another desc", }
+        token = "Token "+str(self.token)
         response = client.post(reverse(
-            "breed-list"), {"name": "another breed", "origin": "another origin", "description": "another desc", })
+            "breed-list"), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # check if changes were made
         total_breeds = len(self.client.get(reverse("breed-list")).data)
@@ -187,7 +195,6 @@ class BreedViewSetTestCase(APITestCase):
         self.assertEqual(response.data["name"], "another breed")
         self.assertEqual(response.data["origin"], "another origin")
         self.assertEqual(response.data["description"], "another desc")
-
 
     def test_breed_detail_add_unauthenticated(self):
         client = APIClient()
@@ -199,11 +206,11 @@ class BreedViewSetTestCase(APITestCase):
     # DELETE
     def test_breed_detail_delete_authenticated(self):
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        token = "Token "+str(self.token)
         # check no of houses atm
         total_breeds = len(self.client.get(reverse("breed-list")).data)
         response = client.delete(
-            reverse("breed-detail", kwargs={"pk": total_breeds}))
+            reverse("breed-detail", kwargs={"pk": total_breeds}), HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         total_breeds_after_delete = len(
             self.client.get(reverse("breed-list")).data)
@@ -247,20 +254,22 @@ class HumanViewSetTestCase(APITestCase):
     def test_human_list_retrieve(self):
         response = self.client.get(reverse("human-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(self.client.get(reverse("human-list")).data), 2)
-        self.assertEqual(self.client.get(reverse("human-list")).data[0]["name"], "dylan")
-        self.assertEqual(self.client.get(reverse("human-list")).data[0]["gender"], "M")
-        self.assertEqual(self.client.get(reverse("human-list")).data[0]["dob"], "1998-01-12")
-        self.assertEqual(self.client.get(reverse("human-list")).data[0]["description"], "dog lover")
-        self.assertEqual(self.client.get(reverse("human-list")).data[0]["home"], "http://testserver/homes/1/")
-        self.assertEqual(self.client.get(reverse("human-list")).data[1]["name"], "thereisa")
-        self.assertEqual(self.client.get(reverse("human-list")).data[1]["gender"], "F")
-        self.assertEqual(self.client.get(reverse("human-list")).data[1]["dob"], "1948-07-16")
-        self.assertEqual(self.client.get(reverse("human-list")).data[1]["description"], "dylan's grandma")
-        self.assertEqual(self.client.get(reverse("human-list")).data[1]["home"], "http://testserver/homes/2/")
-        
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["name"], "dylan")
+        self.assertEqual(response.data[0]["gender"], "M")
+        self.assertEqual(response.data[0]["dob"], "1998-01-12")
+        self.assertEqual(response.data[0]["description"], "dog lover")
+        self.assertEqual(response.data[0]["home"],
+                         "http://testserver/homes/1/")
+        self.assertEqual(response.data[1]["name"], "thereisa")
+        self.assertEqual(response.data[1]["gender"], "F")
+        self.assertEqual(response.data[1]["dob"], "1948-07-16")
+        self.assertEqual(response.data[1]["description"], "dylan's grandma")
+        self.assertEqual(response.data[1]["home"],
+                         "http://testserver/homes/2/")
 
     # GET
+
     def test_human_detail_retrieve(self):
         response = self.client.get(reverse("human-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -274,9 +283,11 @@ class HumanViewSetTestCase(APITestCase):
     def test_human_detail_update_authenticated(self):
         # change name of human
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "mark", "gender": "M", "dob": "2006-02-15",
+                    "description": "test", "home": "http://testserver/homes/1/"}
+        token = "Token "+str(self.token)
         response = client.put(
-            reverse("human-detail", kwargs={"pk": 1}), {"name": "mark", "gender": "M", "dob": "2006-02-15", "description": "test", "home": "http://testserver/homes/1/"})
+            reverse("human-detail", kwargs={"pk": 1}), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # check if changes were made
         response = client.get(reverse("human-detail", kwargs={"pk": 1}))
@@ -298,9 +309,11 @@ class HumanViewSetTestCase(APITestCase):
     def test_human_detail_add_authenticated(self):
         # change name of human
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "alice", "gender": "F", "dob": "2000-01-12",
+                    "description": "cat lover", "home": "http://testserver/homes/2/"}
+        token = "Token "+str(self.token)
         response = client.post(reverse(
-            "human-list"), {"name": "alice", "gender": "F", "dob": "2000-01-12", "description": "cat lover", "home": "http://testserver/homes/2/"})
+            "human-list"), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # check if changes were made
         total_humans = len(self.client.get(reverse("human-list")).data)
@@ -322,11 +335,11 @@ class HumanViewSetTestCase(APITestCase):
     # DELETE
     def test_human_detail_delete_authenticated(self):
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        token = "Token "+str(self.token)
         # check no of houses atm
         total_humans = len(self.client.get(reverse("human-list")).data)
         response = client.delete(
-            reverse("human-detail", kwargs={"pk": total_humans}))
+            reverse("human-detail", kwargs={"pk": total_humans}), HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         total_humans_after_delete = len(
             self.client.get(reverse("human-list")).data)
@@ -378,19 +391,23 @@ class CatViewSetTestCase(APITestCase):
     def test_cat_list_retrieve(self):
         response = self.client.get(reverse("cat-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(self.client.get(reverse("cat-list")).data), 2)
-        self.assertEqual(self.client.get(reverse("cat-list")).data[0]["name"], "bobby")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[0]["gender"], "M")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[0]["dob"], "2014-02-20")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[0]["description"], "brown cat")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[0]["breed"], "http://testserver/breeds/1/")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[0]["owner"], "http://testserver/humans/1/")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[1]["name"], "tom")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[1]["gender"], "M")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[1]["dob"], "2016-07-16")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[1]["description"], "grey cat")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[1]["breed"], "http://testserver/breeds/2/")
-        self.assertEqual(self.client.get(reverse("cat-list")).data[1]["owner"], "http://testserver/humans/2/")
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]["name"], "bobby")
+        self.assertEqual(response.data[0]["gender"], "M")
+        self.assertEqual(response.data[0]["dob"], "2014-02-20")
+        self.assertEqual(response.data[0]["description"], "brown cat")
+        self.assertEqual(response.data[0]["breed"],
+                         "http://testserver/breeds/1/")
+        self.assertEqual(response.data[0]["owner"],
+                         "http://testserver/humans/1/")
+        self.assertEqual(response.data[1]["name"], "tom")
+        self.assertEqual(response.data[1]["gender"], "M")
+        self.assertEqual(response.data[1]["dob"], "2016-07-16")
+        self.assertEqual(response.data[1]["description"], "grey cat")
+        self.assertEqual(response.data[1]["breed"],
+                         "http://testserver/breeds/2/")
+        self.assertEqual(response.data[1]["owner"],
+                         "http://testserver/humans/2/")
 
     # GET
     def test_cat_detail_retrieve(self):
@@ -403,14 +420,16 @@ class CatViewSetTestCase(APITestCase):
         self.assertEqual(response.data["breed"], "http://testserver/breeds/1/")
         self.assertEqual(response.data["owner"], "http://testserver/humans/1/")
 
-
     # PUT
+
     def test_cat_detail_update_authenticated(self):
         # change name of cat
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "shiro", "gender": "F", "dob": "1999-08-16", "description": "white cat",
+                    "breed": "http://testserver/breeds/1/", "owner": "http://testserver/humans/1/"}
+        token = "Token "+str(self.token)
         response = client.put(
-            reverse("cat-detail", kwargs={"pk": 1}), {"name": "shiro", "gender": "F", "dob": "1999-08-16", "description": "white cat", "breed": "http://testserver/breeds/1/", "owner": "http://testserver/humans/1/"})
+            reverse("cat-detail", kwargs={"pk": 1}), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # check if changes were made
         response = client.get(reverse("cat-detail", kwargs={"pk": 1}))
@@ -420,7 +439,6 @@ class CatViewSetTestCase(APITestCase):
         self.assertEqual(response.data["description"], "white cat")
         self.assertEqual(response.data["breed"], "http://testserver/breeds/1/")
         self.assertEqual(response.data["owner"], "http://testserver/humans/1/")
-
 
     def test_cat_detail_update_unauthenticated(self):
         client = APIClient()
@@ -434,9 +452,11 @@ class CatViewSetTestCase(APITestCase):
     def test_cat_detail_add_authenticated(self):
         # change name of cat
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        req_data = {"name": "kuro", "gender": "M", "dob": "2000-01-18", "description": "black cat",
+                    "breed": "http://testserver/breeds/2/", "owner": "http://testserver/humans/2/"}
+        token = "Token "+str(self.token)
         response = client.post(reverse(
-            "cat-list"), {"name": "kuro", "gender": "M", "dob": "2000-01-18", "description": "black cat", "breed": "http://testserver/breeds/2/", "owner": "http://testserver/humans/2/"})
+            "cat-list"), req_data, HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         # check if changes were made
         total_cats = len(self.client.get(reverse("cat-list")).data)
@@ -448,7 +468,6 @@ class CatViewSetTestCase(APITestCase):
         self.assertEqual(response.data["description"], "black cat")
         self.assertEqual(response.data["breed"], "http://testserver/breeds/2/")
         self.assertEqual(response.data["owner"], "http://testserver/humans/2/")
-        
 
     def test_cat_detail_add_unauthenticated(self):
         client = APIClient()
@@ -460,11 +479,11 @@ class CatViewSetTestCase(APITestCase):
     # DELETE
     def test_cat_detail_delete_authenticated(self):
         client = APIClient()
-        client.force_authenticate(user=self.user)
+        token = "Token "+str(self.token)
         # check no of houses atm
         total_cats = len(self.client.get(reverse("cat-list")).data)
         response = client.delete(
-            reverse("cat-detail", kwargs={"pk": total_cats}))
+            reverse("cat-detail", kwargs={"pk": total_cats}), HTTP_AUTHORIZATION=token)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         total_cats_after_delete = len(
             self.client.get(reverse("cat-list")).data)
