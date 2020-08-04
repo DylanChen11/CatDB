@@ -27,21 +27,26 @@ class HomeViewSetTestCase(APITestCase):
         response = self.client.get(reverse("home-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]["name"], "first house")
-        self.assertEqual(response.data[0]["address"], "testaddr")
-        self.assertEqual(response.data[0]["Type"], "landed")
-        self.assertEqual(response.data[1]["name"], "second house")
-        self.assertEqual(response.data[1]["address"], "testaddr2")
-        self.assertEqual(response.data[1]["Type"], "condo")
+        for i in range(len(response.data)):
+            response.data[i].pop("id")
+            response.data[i].pop("humans")
+        expected_home1 = {"name": "first house",
+                          "address": "testaddr", "Type": "landed"}
+        self.assertDictEqual(response.data[0], expected_home1)
+        expected_home2 = {"name": "second house",
+                          "address": "testaddr2", "Type": "condo"}
+        self.assertDictEqual(response.data[1], expected_home2)
 
     # GET
 
     def test_home_detail_retrieve(self):
         response = self.client.get(reverse("home-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "first house")
-        self.assertEqual(response.data["address"], "testaddr")
-        self.assertEqual(response.data["Type"], "landed")
+        response.data.pop("id")
+        response.data.pop("humans")
+        expected_data = {"name": "first house",
+                         "address": "testaddr", "Type": "landed"}
+        self.assertDictEqual(response.data, expected_data)
 
     # PUT
     def test_home_detail_update_authenticated(self):
@@ -78,9 +83,9 @@ class HomeViewSetTestCase(APITestCase):
         total_houses = len(self.client.get(reverse("home-list")).data)
         response = client.get(
             reverse("home-detail", kwargs={"pk": total_houses}))
-        self.assertEqual(response.data["name"], "third house")
-        self.assertEqual(response.data["address"], "testaddr3")
-        self.assertEqual(response.data["Type"], "condo")
+        response.data.pop("id")
+        response.data.pop("humans")
+        self.assertDictEqual(response.data, req_data)
 
     def test_home_detail_add_unauthenticated(self):
         client = APIClient()
@@ -139,25 +144,29 @@ class BreedViewSetTestCase(APITestCase):
         response = self.client.get(reverse("breed-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]["name"], "Munchkin")
-        self.assertEqual(response.data[0]["origin"], "Mutation")
-        self.assertEqual(response.data[0]["description"], "Dwarf")
-        self.assertEqual(response.data[1]["name"], "Bengal")
-        self.assertEqual(
-            response.data[1]["origin"], "Hybrid of the Abyssinian and Egyptian Mau x leopard cat")
-        self.assertEqual(
-            response.data[1]["description"], "Spotted, marbled, or rosetted")
+        expected_breed1 = {"name": "Munchkin",
+                           "origin": "Mutation", "description": "Dwarf"}
+        expected_breed2 = {"name": "Bengal", "origin": "Hybrid of the Abyssinian and Egyptian Mau x leopard cat",
+                           "description": "Spotted, marbled, or rosetted"}
+        for i in range(len(response.data)):
+            response.data[i].pop("id")
+            response.data[i].pop("cats")
+        self.assertDictEqual(response.data[0], expected_breed1)
+        self.assertDictEqual(response.data[1], expected_breed2)
 
     # GET
 
     def test_breed_detail_retrieve(self):
         response = self.client.get(reverse("breed-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "Munchkin")
-        self.assertEqual(response.data["origin"], "Mutation")
-        self.assertEqual(response.data["description"], "Dwarf")
+        expected_breed1 = {"name": "Munchkin",
+                           "origin": "Mutation", "description": "Dwarf"}
+        response.data.pop("id")
+        response.data.pop("cats")
+        self.assertDictEqual(response.data, expected_breed1)
 
     # PUT
+
     def test_breed_detail_update_authenticated(self):
         # change name of breed
         client = APIClient()
@@ -192,9 +201,9 @@ class BreedViewSetTestCase(APITestCase):
         total_breeds = len(self.client.get(reverse("breed-list")).data)
         response = client.get(
             reverse("breed-detail", kwargs={"pk": total_breeds}))
-        self.assertEqual(response.data["name"], "another breed")
-        self.assertEqual(response.data["origin"], "another origin")
-        self.assertEqual(response.data["description"], "another desc")
+        response.data.pop("id")
+        response.data.pop("cats")
+        self.assertDictEqual(response.data, req_data)
 
     def test_breed_detail_add_unauthenticated(self):
         client = APIClient()
@@ -255,29 +264,25 @@ class HumanViewSetTestCase(APITestCase):
         response = self.client.get(reverse("human-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]["name"], "dylan")
-        self.assertEqual(response.data[0]["gender"], "M")
-        self.assertEqual(response.data[0]["dob"], "1998-01-12")
-        self.assertEqual(response.data[0]["description"], "dog lover")
-        self.assertEqual(response.data[0]["home"],
-                         "http://testserver/homes/1/")
-        self.assertEqual(response.data[1]["name"], "thereisa")
-        self.assertEqual(response.data[1]["gender"], "F")
-        self.assertEqual(response.data[1]["dob"], "1948-07-16")
-        self.assertEqual(response.data[1]["description"], "dylan's grandma")
-        self.assertEqual(response.data[1]["home"],
-                         "http://testserver/homes/2/")
+        for i in range(len(response.data)):
+            response.data[i].pop("id")
+            response.data[i].pop("cats")
+        human1 = {"name": "dylan", "gender": "M", "dob": "1998-01-12",
+                  "description": "dog lover", "home": "http://testserver/homes/1/"}
+        human2 = {"name": "thereisa", "gender": "F", "dob": "1948-07-16",
+                  "description": "dylan's grandma", "home": "http://testserver/homes/2/"}
+        self.assertDictEqual(response.data[0], human1)
+        self.assertDictEqual(response.data[1], human2)
 
     # GET
-
     def test_human_detail_retrieve(self):
         response = self.client.get(reverse("human-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "dylan")
-        self.assertEqual(response.data["gender"], "M")
-        self.assertEqual(response.data["dob"], "1998-01-12")
-        self.assertEqual(response.data["description"], "dog lover")
-        self.assertEqual(response.data["home"], "http://testserver/homes/1/")
+        response.data.pop("id")
+        response.data.pop("cats")
+        expected_data = {"name": "dylan", "gender": "M", "dob": "1998-01-12",
+                         "description": "dog lover", "home": "http://testserver/homes/1/"}
+        self.assertDictEqual(response.data, expected_data)
 
     # PUT
     def test_human_detail_update_authenticated(self):
@@ -291,11 +296,9 @@ class HumanViewSetTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # check if changes were made
         response = client.get(reverse("human-detail", kwargs={"pk": 1}))
-        self.assertEqual(response.data["name"], "mark")
-        self.assertEqual(response.data["gender"], "M")
-        self.assertEqual(response.data["dob"], "2006-02-15")
-        self.assertEqual(response.data["description"], "test")
-        self.assertEqual(response.data["home"], "http://testserver/homes/1/")
+        response.data.pop("id")
+        response.data.pop("cats")
+        self.assertDictEqual(response.data, req_data)
 
     def test_human_detail_update_unauthenticated(self):
         client = APIClient()
@@ -319,11 +322,9 @@ class HumanViewSetTestCase(APITestCase):
         total_humans = len(self.client.get(reverse("human-list")).data)
         response = client.get(
             reverse("human-detail", kwargs={"pk": total_humans}))
-        self.assertEqual(response.data["name"], "alice")
-        self.assertEqual(response.data["gender"], "F")
-        self.assertEqual(response.data["dob"], "2000-01-12")
-        self.assertEqual(response.data["description"], "cat lover")
-        self.assertEqual(response.data["home"], "http://testserver/homes/2/")
+        response.data.pop("id")
+        response.data.pop("cats")
+        self.assertDictEqual(response.data, req_data)
 
     def test_human_detail_add_unauthenticated(self):
         client = APIClient()
@@ -392,33 +393,25 @@ class CatViewSetTestCase(APITestCase):
         response = self.client.get(reverse("cat-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
-        self.assertEqual(response.data[0]["name"], "bobby")
-        self.assertEqual(response.data[0]["gender"], "M")
-        self.assertEqual(response.data[0]["dob"], "2014-02-20")
-        self.assertEqual(response.data[0]["description"], "brown cat")
-        self.assertEqual(response.data[0]["breed"],
-                         "http://testserver/breeds/1/")
-        self.assertEqual(response.data[0]["owner"],
-                         "http://testserver/humans/1/")
-        self.assertEqual(response.data[1]["name"], "tom")
-        self.assertEqual(response.data[1]["gender"], "M")
-        self.assertEqual(response.data[1]["dob"], "2016-07-16")
-        self.assertEqual(response.data[1]["description"], "grey cat")
-        self.assertEqual(response.data[1]["breed"],
-                         "http://testserver/breeds/2/")
-        self.assertEqual(response.data[1]["owner"],
-                         "http://testserver/humans/2/")
+        for i in range(len(response.data)):
+            response.data[i].pop("id")
+            response.data[i].pop("home")
+        cat1 = {"name": "bobby", "gender": "M", "dob": "2014-02-20", "description": "brown cat",
+                "breed": "http://testserver/breeds/1/", "owner": "http://testserver/humans/1/"}
+        cat2 = {"name": "tom", "gender": "M", "dob": "2016-07-16", "description": "grey cat",
+                "breed": "http://testserver/breeds/2/", "owner": "http://testserver/humans/2/"}
+        self.assertDictEqual(response.data[0], cat1)
+        self.assertDictEqual(response.data[1], cat2)
 
     # GET
     def test_cat_detail_retrieve(self):
         response = self.client.get(reverse("cat-detail", kwargs={"pk": 1}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["name"], "bobby")
-        self.assertEqual(response.data["gender"], "M")
-        self.assertEqual(response.data["dob"], "2014-02-20")
-        self.assertEqual(response.data["description"], "brown cat")
-        self.assertEqual(response.data["breed"], "http://testserver/breeds/1/")
-        self.assertEqual(response.data["owner"], "http://testserver/humans/1/")
+        response.data.pop("id")
+        response.data.pop("home")
+        expected_data = {"name": "bobby", "gender": "M", "dob": "2014-02-20", "description": "brown cat",
+                         "breed": "http://testserver/breeds/1/", "owner": "http://testserver/humans/1/"}
+        self.assertDictEqual(response.data, expected_data)
 
     # PUT
 
@@ -433,12 +426,9 @@ class CatViewSetTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         # check if changes were made
         response = client.get(reverse("cat-detail", kwargs={"pk": 1}))
-        self.assertEqual(response.data["name"], "shiro")
-        self.assertEqual(response.data["gender"], "F")
-        self.assertEqual(response.data["dob"], "1999-08-16")
-        self.assertEqual(response.data["description"], "white cat")
-        self.assertEqual(response.data["breed"], "http://testserver/breeds/1/")
-        self.assertEqual(response.data["owner"], "http://testserver/humans/1/")
+        response.data.pop("id")
+        response.data.pop("home")
+        self.assertDictEqual(response.data, req_data)
 
     def test_cat_detail_update_unauthenticated(self):
         client = APIClient()
@@ -462,12 +452,9 @@ class CatViewSetTestCase(APITestCase):
         total_cats = len(self.client.get(reverse("cat-list")).data)
         response = client.get(
             reverse("cat-detail", kwargs={"pk": total_cats}))
-        self.assertEqual(response.data["name"], "kuro")
-        self.assertEqual(response.data["gender"], "M")
-        self.assertEqual(response.data["dob"], "2000-01-18")
-        self.assertEqual(response.data["description"], "black cat")
-        self.assertEqual(response.data["breed"], "http://testserver/breeds/2/")
-        self.assertEqual(response.data["owner"], "http://testserver/humans/2/")
+        response.data.pop("id")
+        response.data.pop("home")
+        self.assertDictEqual(response.data, req_data)
 
     def test_cat_detail_add_unauthenticated(self):
         client = APIClient()
