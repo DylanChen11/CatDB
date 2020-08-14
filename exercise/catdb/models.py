@@ -17,7 +17,6 @@ class Breed(models.Model):
     name = models.CharField(max_length=100)
     origin = models.CharField(max_length=100, blank=True, default='')
     description = models.TextField(default='')
-    homes = models.CharField(max_length=100, blank=True, default='')
 
     def __str__(self):
         return "Name: "+self.name+", Origin: "+self.origin+", Desc: "+self.description
@@ -57,6 +56,9 @@ class Cat(models.Model):
         Breed, related_name='cats', on_delete=models.CASCADE)
     owner = models.ForeignKey(
         Human, related_name='cats', on_delete=models.CASCADE)
+
+    def get_home(self):
+        return self.owner.home
 
     def __str__(self):
         return "Name: "+self.name+", gender: "+self.gender+", dob: "+str(self.dob)+", desc: "+self.description
